@@ -40,9 +40,9 @@ def dump_series(base_time, series):
         print "%02d(%02d)" % ((ts-base_time)/60, value), 
     print
     
-def plot_series(base_time, series, max_val):
+def plot_series(base_time, series, max_val, limit=15):
     scale = max_val / MAX_WIDTH_COLUMNS
-    for ts, count in series.iteritems():
+    for ts, count in series.items()[-limit:]:
         print "%4d minutes (%03d): %s" % ((ts-base_time)/60, count, "*" * (count/scale))
 
 def sum_series(series):
@@ -72,7 +72,7 @@ def monitor(interval_name):
         # count = counters.count(KEY, interval_name)
         last_5 = counters.series(KEY, interval_name, steps=5, condensed=False)
         sum = sum_series(last_5)
-        # This should work but breaks: sum = counters.series(KEY, interval_name, steps=5, condensed=True)
+        # This should work but breaks: condensed = counters.series(KEY, interval_name, steps=5, condensed=True)
         #dump_series(time.time(), series)
         plot_series(time.time(), series, interval_max_values[interval_name])
         print "%d in last 5 %s (~%2.2f per %s)." % (sum, interval_name, sum/5.0, interval_name)
