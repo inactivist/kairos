@@ -209,7 +209,7 @@ class Timeseries(object):
         rval[ resolution_buckets[idx]*resolution ] = data
     
     # If condensed, collapse the result into a single row
-    if condensed:
+    if condensed and step!=resolution:
       return reduce(operator.add, rval.values())
     return rval
 
@@ -263,7 +263,7 @@ class Timeseries(object):
           rval[ resolution_buckets[idx]*resolution ] = int(data) if data else 0
     
     # If condensed, collapse the result into a single sum
-    if condensed:
+    if condensed and step!=resolution:
       return sum(rval.values())
       
     return rval
@@ -354,7 +354,7 @@ class Timeseries(object):
           rval[interval_bucket*step][ resolution_buckets[x]*resolution ] = data
 
     # If condensed, collapse each interval into a single value
-    if condensed:
+    if condensed and step!=resolution:
       for key in rval.keys():
         if config.count_only:
           rval[key] = sum(rval[key].values())
