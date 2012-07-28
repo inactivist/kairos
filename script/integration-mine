@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+import sys, os
+sys.path.append(os.path.abspath("."))
+sys.path.append(os.path.abspath(".."))
+
+from kairos import Timeseries
+import redis
+import random
+import time
+#import gevent
+
+client = redis.Redis('localhost', 6379)
+t = Timeseries(client, {
+  '5second': {
+    'step': 5,      # 5 seconds
+    'steps' : 360,  # last half hour
+    'read_cast' : float,
+  },
+  'minute':{
+    'step':60,      # 60 seconds
+    'steps':120,    # last 2 hours
+    'read_cast' : float,
+  },
+  'hour':{
+    'step':3600,      # 1 hour
+    'steps':48,       # last 2 days
+    'resoluton':60,   # 1 minute resolution
+    'compress':True,  # compress the data
+    'read_cast' : float,
+  }
+})
+
+if True:
+    # Insert random numbers. To show compression working, cast the floats
+    # to strings and trim to 1 decimal place
+    print 'Inserting for 5 minutes' # more or less
+    for second in range(1*60):
+      num_per_sec = 5000
+      sleep = 1/num_per_sec
+      for _something in range(num_per_sec):
+        num = "%.1f"%(random.random())
+        t.insert('integration', num)
+        time.sleep( sleep )
+
+print 'last 5 seconds'
+series = t.get('integration', '5second', condensed=True)
+if series:
+    print '  count', len(series)
+    print '  min  ', min(series)
+    print '  max  ', max(series)
+    print '  avg  ', (sum(series) / len(series))
+
+print 'last minute'
+series = t.get('integration', 'minute', condensed=True)
+if series:
+    print '  count', len(series)
+    print '  min  ', min(series)
+    print '  max  ', max(series)
+    print '  avg  ', (sum(series) / len(series))
+    
+print 'last 5 minutes'
+series = t.series('integration', 'minute', steps=5, condensed=True)
+if series:
+    print '  count', len(series)
+    print '  min  ', min(series)
+    print '  max  ', max(series)
+    print '  avg  ', (sum(series) / len(series))
+
+print 'last hour'
+series = t.get('integration', 'hour', condensed=True)
+if series:
+    print '  count', len(series)
+    print '  min  ', min(series)
+    print '  max  ', max(series)
+    print '  avg  ', (sum(series) / len(series))
+    
