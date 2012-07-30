@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-
+"""This is intended to serve as an example of using Kairos to generate and
+display time series histogram data for an event.
+"""
 from kairos import Timeseries
 import redis
 import time
@@ -12,28 +14,11 @@ KEY = 'example.com'
 KEY_PREFIX = 'timedata:domain'
 
 client = redis.Redis('localhost', 6379)
-#counters = Timeseries(client, {
-#        'minute': {
-#                'step': 60,              # 60 seconds
-#                'steps': 60,             # last hour
-#                'count_only' : True,    # store counts only.
-#            },
-#        'hour': {
-#                'step': 3600,           # Hourly
-#                'steps': 24,            # Last day
-#                'count_only' : True,    # Store counts only.
-#            },
-#        'daily': {
-#                'step': 86400,          # Daily
-#                'steps': 30,            # Last 30 days
-#                'count_only': True,     # Store counts only.
-#            },
-#    }, 
-#    key_prefix=KEY_PREFIX)
 
 class EventCounter(object):
     """Manage event counters."""
     def __init__(self, redis_client, key_prefix=None):
+        """Create our counter structure."""
         self.counters = Timeseries(redis_client, {
                 'minute': {
                         'step': 60,              # 60 seconds
