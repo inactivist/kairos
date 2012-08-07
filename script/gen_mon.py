@@ -10,6 +10,10 @@ import random
 from argparse import ArgumentError
 
 MAX_WIDTH_COLUMNS = 60
+KEY = 'example.com'
+KEY_PREFIX = 'timedata:domain'
+client = redis.Redis('localhost', 6379)
+counters = None
 
 class EventCounter(object):
     """Manage event counters."""
@@ -60,10 +64,6 @@ class EventCounter(object):
         raise NotImplementedError() 
     
     
-KEY = 'example.com'
-KEY_PREFIX = 'timedata:domain'
-client = redis.Redis('localhost', 6379)
-counters = EventCounter(redis_client=client, key_prefix=KEY_PREFIX)
 
 def hit(domain):
     print "hit: %s @ %d" % (domain, time.time())
@@ -71,7 +71,7 @@ def hit(domain):
 
 def dump_series(base_time, series):
     for ts, value in series.iteritems():
-        print "%02d(%02d)" % ((ts-base_time)/60, value), 
+        print "%02d(%5d)" % ((ts-base_time)/60, value), 
     print
     
 def plot_series(series, max_val, limit=15):
@@ -80,7 +80,7 @@ def plot_series(series, max_val, limit=15):
     # 
     offset = 1-limit
     for count in series[-limit:]:
-        print "%4d (%03d): %s" % (offset, count, "*" * (count/scale))
+        print "%4d (%5d): %s" % (offset, count, "*" * (count/scale))
         offset += 1
 
 def sum_series(series):
@@ -107,19 +107,21 @@ def generate():
             hit(KEY)
         x += 1
 
-interval_max_values = { 'minute' : 100, 'hour': 2000, 'daily': 2000*24 }
+interval_max_values = { 'minute' : 300, 'hour': 15000, 'daily': 15000*24 }
 
 def monitor(interval_name, limit=5):
     while True:
         series = counters.get_counts(interval_name, KEY, limit)
-        sum = counters.get_sum(interval_name, KEY, 5)
+        sum = counters.get_sum(interval_name, KEY, limit)
         #series = counters.series(KEY, interval_name)
         #last_5 = counters.series(KEY, interval_name, steps=5, condensed=False)
         # sum = sum_series(last_5)
         # This should work but breaks: condensed = counters.series(KEY, interval_name, steps=5, condensed=True)
         #dump_series(time.time(), series)
+        
+        # TODO: Autoscale interval_max_values...
         plot_series(series, interval_max_values[interval_name], limit=limit)
-        print "%d in last %d %s (~%2.2f per %s)." % (sum, limit, interval_name, sum/5.0, interval_name)
+        print "%d in last %d %s (~%2.2f per %s)." % (sum, limit, interval_name, sum/float(limit), interval_name)
         time.sleep(1)
 
 if __name__ == "__main__":
@@ -128,8 +130,16 @@ if __name__ == "__main__":
     parser.add_argument('op', metavar='op', help='If op=generate, generates random data.  If op=monitor, monitors generated data.', default='generate', action="store", choices=['generate', 'monitor'])
     parser.add_argument('-i', '--interval', metavar='interval', default='minute', action='store', choices=['minute', 'hour', 'daily'])
     parser.add_argument('-l', '--limit', metavar='limit', default=15, action='store', type=int, help='The number of past entries to display in histogram in monitor mode.')
+    parser.add_argument('-p', '--prefix', metavar='prefix', default=KEY_PREFIX, action='store', help='The key prefix to use.')
+    parser.add_argument('-e', '--eventid', metavar='eventid', default=KEY, action='store', help='The event id to use.')
     opts = parser.parse_args()
+    
+    KEY_PREFIX = opts.prefix
+    KEY = opts.eventid
+    counters = EventCounter(redis_client=client, key_prefix=opts.prefix)
+
     if opts.op == 'generate':
         generate()
     else:
         monitor(opts.interval, opts.limit)
+        
