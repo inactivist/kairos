@@ -80,7 +80,7 @@ class Timeseries(object):
     if len(self._prefix) and not self._prefix.endswith(':'):
       self._prefix += ':'
 
-  def insert(self, name, value, timestamp=None):
+  def insert(self, name, value=1, timestamp=None):
     '''
     Insert a value for the timeseries "name". For each interval in the 
     configuration, will insert the value into a bucket for the interval
@@ -114,7 +114,7 @@ class Timeseries(object):
       # If resolution is the same as step, store in the same row.
       if resolution==step:
         if _cfg.count_only:
-          pipe.incr(interval_key)
+          pipe.incr(interval_key, value)
         elif _cfg.compress:
           pipe.hincrby(interval_key, value, 1)
         else:
